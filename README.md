@@ -32,7 +32,7 @@ Environment:        Functional
 Gemini API:         Connected (gemini-2.5-flash-lite)
 Personality Layer:  Active
 Chat Loop:          Functional (session memory)
-Error Handling:     Complete (in-character responses)
+Error Handling:     Implemented (basic recovery + in-character responses)
 Persistent Memory:  Not Implemented — Phase 2
 Voice / Animation:  Planned
 ```
