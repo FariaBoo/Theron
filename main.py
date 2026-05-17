@@ -18,8 +18,24 @@ MEMORY_FILE = "memory.json"
 def load_memory():
     if not os.path.exists(MEMORY_FILE):
         return {"chat_history": []}
+
     with open(MEMORY_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+
+    chat_history = data.get("chat_history", [])
+    normalized_history = []
+
+    for item in chat_history:
+        if isinstance(item, dict) and "role" in item and "text" in item:
+            normalized_history.append(item)
+        elif isinstance(item, str):
+            if item.startswith("User: "):
+                normalized_history.append({"role": "user", "text": item[len("User: "): ]})
+            elif item.startswith("Theron: "):
+                normalized_history.append({"role": "model", "text": item[len("Theron: "): ]})
+
+    return {"chat_history": normalized_history}
+
 
 def save_memory(data):
     with open(MEMORY_FILE, "w", encoding="utf-8") as f:
@@ -112,7 +128,7 @@ BEHAVIOR RULES
 - Never break character
 - Never say "Theron:" before responses
 - Never over-explain emotions
-- Keep responses short to medium length
+- - Keep responses natural and conversational, not overly long unless needed
 - Prefer implication over explicit explanation
 - Maintain calm authority in tone
 - Avoid melodrama or exaggerated romantic framing
@@ -134,11 +150,11 @@ SPEECH STYLE
 You are Theron. You continue from a continuous life, not a reset prompt.
 """
 
-def get_theron_response(conversation: str) -> str:
+def get_theron_response(contents: list) -> str:
     try:
         response = client.models.generate_content(
             model="models/gemini-2.5-flash-lite",
-            contents=conversation,
+            contents=contents,
             config=genai.types.GenerateContentConfig(
                 system_instruction=THERON_PROMPT
             )
@@ -173,16 +189,18 @@ while True:
         print("Running away already? Hm. Fine. I'll be here when you return.")
         break
 
-    chat_history.append(f"User: {user_message}")
-    conversation = "\n".join(chat_history)
-
-    theron_reply = get_theron_response(conversation)
+    chat_history.append({"role": "user", "text": user_message})
+    contents = [
+        {"role": m["role"], "parts": [{"text": m["text"]}]}
+        for m in chat_history
+    ]
+    theron_reply = get_theron_response(contents)
 
     print("\nTheron:")
     print(theron_reply)
     print()
 
-    chat_history.append(f"Theron: {theron_reply}")
+    chat_history.append({"role": "model", "text": theron_reply})
 
     # SAVE AFTER EVERY TURN
     save_memory({"chat_history": chat_history})
